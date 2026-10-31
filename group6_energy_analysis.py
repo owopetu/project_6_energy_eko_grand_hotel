@@ -117,3 +117,62 @@ def solar_scenario(load_kw, grid_on, solar_per_kwp, kwp, litres_per_kwh):
                diesel_l=from_gen * litres_per_kwh)
     assert all(v.shape == load_kw.shape for v in out.values())
     return out
+
+
+
+# ---------------------------------------------------------------- PIPELINE
+def run_pipeline(path, diesel_price_naira=None, verbose=True):
+    load_raw, grid, solar, params = load_data(path)
+    L_raw = to_grid(load_raw)
+    G = to_grid(grid)
+    S = to_grid(solar)
+    lpk = params["generator_litres_per_kwh"]
+    kwp = params["reference_solar_kwp"]
+
+    L, report = clean_load(L_raw)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    res = dict(L_raw=L_raw, L=L, G=G, S=S, report=report, params=params,
+               annual_kwh=annual_kwh, hours_off=hours_off,
+               grid_kwh=kwh_on.sum(), gen_kwh=kwh_off.sum(),
+               diesel_today=diesel_today, gen_by_month=gen_by_month,
+               worst_month=worst_month, sc=sc, diesel_solar=diesel_solar,
+               saved_l=saved_l, saved_pct=saved_pct, saved_naira=saved_naira,
+               gen_kwh_solar=sc["from_gen"].sum(), kwp=kwp, lpk=lpk,
+               diesel_solar_by_month=monthly_sum(sc["diesel_l"].sum(axis=1)),
+               diesel_today_by_month=gen_by_month * lpk)
+    if verbose:
+        print("Problems found:", {k: v.tolist() for k, v in report.items()})
+        print(f"Annual use      : {annual_kwh:,.0f} kWh")
+        print(f"Hours no grid   : {hours_off:,.1f} h")
+        print(f"Generator energy: {kwh_off.sum():,.0f} kWh")
+        print(f"Diesel today    : {diesel_today:,.0f} L")
+        print(f"Worst month     : {MONTHS[worst_month]} ({gen_by_month[worst_month]:,.0f} kWh)")
+        print(f"Diesel w/ solar : {diesel_solar:,.0f} L")
+        print(f"Diesel saved    : {saved_l:,.0f} L ({saved_pct:.1f}%)")
+        if saved_naira is not None:
+            print(f"Value saved     : N{saved_naira:,.0f}")
+    return res
+
+
+if __name__ == "__main__":
+    run_pipeline("/mnt/user-data/uploads/group06_energy.npz", diesel_price_naira=1000)
+
