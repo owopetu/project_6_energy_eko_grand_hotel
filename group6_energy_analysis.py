@@ -122,6 +122,11 @@ def solar_scenario(load_kw, grid_on, solar_per_kwp, kwp, litres_per_kwh):
 
 # ---------------------------------------------------------------- PIPELINE
 def run_pipeline(path, diesel_price_naira=None, verbose=True):
+    """Run the whole pipeline on one data file.
+    In : path to a .npz file -> arrays (17520,) float64 / bool / float64
+    Steps: (17520,) -> (365,48) -> clean (365,48) -> daily (365,) -> monthly (12,)
+    Out: dict of results: scalars (kWh, hours, litres, naira), monthly (12,)
+         arrays, and the (365,48) tables (L_raw, L, G, S, sc)."""
     load_raw, grid, solar, params = load_data(path)
     L_raw = to_grid(load_raw)
     G = to_grid(grid)
@@ -174,5 +179,5 @@ def run_pipeline(path, diesel_price_naira=None, verbose=True):
 
 
 if __name__ == "__main__":
-    run_pipeline("/mnt/user-data/uploads/group06_energy.npz", diesel_price_naira=1000)
+    run_pipeline("/mnt/user-data/uploads/group06_energy.npz", diesel_price_naira=1800)
 
