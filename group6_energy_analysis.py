@@ -119,7 +119,6 @@ def solar_scenario(load_kw, grid_on, solar_per_kwp, kwp, litres_per_kwh):
     return out
 
 
-
 # ---------------------------------------------------------------- PIPELINE
 def run_pipeline(path, diesel_price_naira=None, verbose=True):
     """Run the whole pipeline on one data file.
@@ -135,25 +134,21 @@ def run_pipeline(path, diesel_price_naira=None, verbose=True):
     kwp = params["reference_solar_kwp"]
 
     L, report = clean_load(L_raw)
+          
+        # --- Question 1: today
+    kwh, kwh_on, kwh_off = energy_split(L, G)
+    annual_kwh = kwh.sum()
+    hours_off = (~G).sum() * 0.5
+    diesel_today = kwh_off.sum() * lpk
+    gen_by_month = monthly_sum(kwh_off.sum(axis=1))
+    worst_month = int(gen_by_month.argmax())
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    # --- Question 2: with solar
+    sc = solar_scenario(L, G, S, kwp, lpk)
+    diesel_solar = sc["diesel_l"].sum()
+    saved_l = diesel_today - diesel_solar
+    saved_pct = 100 * saved_l / diesel_today
+    saved_naira = None if diesel_price_naira is None else saved_l * diesel_price_naira
 
     res = dict(L_raw=L_raw, L=L, G=G, S=S, report=report, params=params,
                annual_kwh=annual_kwh, hours_off=hours_off,
