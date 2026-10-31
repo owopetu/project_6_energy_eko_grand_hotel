@@ -21,4 +21,56 @@ def to_grid(flat):
     assert out.shape == (n_days, 48)
     return out
 
+# ---------------------------------------------------------------- STAGE 2
+def find_watts_days(load):
+    """Problem 1: a month logged in watts.  (365,48) -> (365,) bool"""
+    daily_total = load.sum(axis=1)
+    typical = np.nanmedian(daily_total)
+    return daily_total > 100 * typical          # nan > number is False
+
+
+def find_stuck_days(load):
+    """Problem 2: meter stuck on one value.  (365,48) -> (365,) bool
+    A 'stuck' stretch = at least one full day (48 readings) of identical values."""
+    flat = load.ravel()
+    same = np.concatenate(([False], flat[1:] == flat[:-1], [False])).astype(int)
+    edges = np.diff(same)
+    starts = np.flatnonzero(edges == 1)          # where a run of repeats begins
+    ends = np.flatnonzero(edges == -1)           # where it stops
+    long_runs = (ends - starts + 1) >= 48
+    stuck = np.zeros(flat.size, dtype=bool)
+    for s, e in zip(starts[long_runs], ends[long_runs]):   # only a handful of runs
+        stuck[s:e + 1] = True
+    return stuck.reshape(load.shape).any(axis=1)
+
+
+def find_missing_days(load):
+    """Problem 3: a day that is nan.  (365,48) -> (365,) bool"""
+    return np.isnan(load).any(axis=1)
+
+
+def clean_load(load):
+    """Fix all three problems.  (365,48) -> (365,48), plus a report dict."""
+    report = {}
+    watts = find_watts_days(load)
+    report["watts_days"] = np.flatnonzero(watts)
+    fixed = load.copy()
+    fixed[watts] = fixed[watts] / 1000.0                    # W -> kW
+
+    missing = find_missing_days(fixed)
+    stuck = find_stuck_days(fixed)
+    report["missing_days"] = np.flatnonzero(missing)
+    report["stuck_days"] = np.flatnonzero(stuck)
+
+    bad = missing | stuck
+    # pick neighbours from the *good* days only
+    n_days = fixed.shape[0]
+    out = fixed.copy()
+    for d in np.flatnonzero(bad):
+        cand = [d + k for k in (-7, 7, -14, 14)
+                if 0 <= d + k < n_days and not bad[d + k]][:2]
+        out[d] = fixed[cand].mean(axis=0)
+    assert out.shape == load.shape
+    assert not np.isnan(out).any()
+    return out, report
 
