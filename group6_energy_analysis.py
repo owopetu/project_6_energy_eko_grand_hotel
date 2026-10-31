@@ -43,14 +43,12 @@ def find_stuck_days(load):
         stuck[s:e + 1] = True
     return stuck.reshape(load.shape).any(axis=1)
 
-
+# ---------------------------------------------------------------- FIXING PROBLEM 3
 def find_missing_days(load):
-    """Problem 3: a day that is nan.  (365,48) -> (365,) bool"""
     return np.isnan(load).any(axis=1)
 
-
+# ---------------------------------------------------------------- DATA CLEANING (ALL 3)
 def clean_load(load):
-    """Fix all three problems.  (365,48) -> (365,48), plus a report dict."""
     report = {}
     watts = find_watts_days(load)
     report["watts_days"] = np.flatnonzero(watts)
@@ -63,7 +61,6 @@ def clean_load(load):
     report["stuck_days"] = np.flatnonzero(stuck)
 
     bad = missing | stuck
-    # pick neighbours from the *good* days only
     n_days = fixed.shape[0]
     out = fixed.copy()
     for d in np.flatnonzero(bad):
